@@ -225,7 +225,9 @@ export function enhanceItemSheet(app, html) {
     const item = app.item ?? app.document ?? app.object;
     if (item?.documentName !== 'Item') return;
     const root = html?.querySelector ? html : html?.[0] ?? app.element?.[0] ?? app.element;
-    if (!root || root.querySelector('[name="system.price"]')) return;
+    if (!root) return;
+    enhanceQuantityField(app, root, item);
+    if (root.querySelector('[name="system.price"]')) return;
     const anchor = root.querySelector('.sheet-header') ?? root.querySelector('form') ?? root;
     const row = document.createElement('div'); row.className = 'itempileffg-price-field';
     const label = document.createElement('label'); label.textContent = `${t('PRICE')} (${currencyConfig().name})`;
@@ -249,3 +251,32 @@ export function enhanceItemSheet(app, html) {
 Hooks.on('renderItemSheet', enhanceItemSheet);
 Hooks.on('renderItemSheetV2', enhanceItemSheet);
 Hooks.on('renderApplicationV2', enhanceItemSheet);
+
+/** Reuse the inventory quantity, including existing ammunition fields. */
+export function enhanceQuantityField(app, root, item) {
+    if (!PHYSICAL_TYPES.has(item.type) || root.querySelector('[name="system.quantity"]')) return;
+    const anchor = root.querySelector('.stats') ?? root.querySelector('form') ?? root;
+    const row = document.createElement('div'); row.className = 'form-group itempileffg-price-field';
+    const label = document.createElement('label'); label.textContent = t('QUANTITY');
+    const input = document.createElement('input'); input.type = 'number'; input.name = 'system.quantity';
+    input.min = '0'; input.step = '1'; input.value = String(item.system.quantity ?? 1);
+    input.disabled = !item.isOwner || app.isEditable === false;
+    label.append(input); row.append(label); anchor.append(row);
+    input.addEventListener('change', async event => {
+        event.stopPropagation();
+        try {
+            if (!item.isOwner || app.isEditable === false) throw new Error(t('NO_PERMISSION'));
+            const quantity = Number(input.value);
+            if (!input.value.trim() || !Number.isInteger(quantity) || quantity < 0 || item.system.inventory?.isContainer && quantity !== 1)
+                throw new Error(t('INVALID_QUANTITY'));
+            if (item.parent?.documentName === 'Actor') {
+                await configureItem({actorUuid:item.parent.uuid,itemId:item.id,quantity,
+                    price:item.system.price ?? 0,isContainer:!!item.system.inventory?.isContainer,capacity:item.system.inventory?.capacity ?? 0});
+            } else await item.update({'system.quantity':quantity});
+            input.setCustomValidity('');
+        } catch(error) {
+            input.setCustomValidity(errorText(error)); input.reportValidity();
+            input.value = String(item.system.quantity ?? 1); ui.notifications.error(errorText(error));
+        }
+    });
+}
