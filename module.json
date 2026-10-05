@@ -1,0 +1,69 @@
+{
+  "id": "itempileffg",
+  "title": "ItemPileFFG",
+  "description": "Торговля, стоимость предметов и вложенные рюкзаки для Apex Heresy. Требует включённых Item Piles, libWrapper и socketlib.",
+  "version": "0.1.3",
+  "compatibility": {
+    "minimum": "14",
+    "verified": "14"
+  },
+  "authors": [
+    {
+      "name": "DarkReef"
+    },
+    {
+      "name": "Apex"
+    }
+  ],
+  "esmodules": [
+    "scripts/main.mjs"
+  ],
+  "styles": [
+    "style.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    },
+    {
+      "lang": "ru",
+      "name": "Русский",
+      "path": "lang/ru.json"
+    }
+  ],
+  "relationships": {
+    "systems": [
+      {
+        "id": "dark-heresy",
+        "type": "system",
+        "compatibility": {
+          "minimum": "1.4.2"
+        }
+      }
+    ],
+    "requires": [
+      {
+        "id": "item-piles",
+        "type": "module",
+        "manifest": "https://github.com/fantasycalendar/FoundryVTT-ItemPiles/releases/latest/download/manifest.json"
+      },
+      {
+        "id": "lib-wrapper",
+        "type": "module",
+        "manifest": "https://github.com/ruipin/fvtt-lib-wrapper/releases/latest/download/module.json"
+      },
+      {
+        "id": "socketlib",
+        "type": "module",
+        "manifest": "https://github.com/farling42/foundryvtt-socketlib/releases/latest/download/module.json"
+      }
+    ]
+  },
+  "url": "https://github.com/DarkReef/itempileffg",
+  "manifest": "https://github.com/DarkReef/itempileffg/releases/latest/download/module.json",
+  "download": "https://github.com/DarkReef/itempileffg/releases/download/v0.1.3/itempileffg.zip",
+  "license": "LICENSE",
+  "readme": "https://github.com/DarkReef/itempileffg#readme"
+}
