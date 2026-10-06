@@ -51,5 +51,17 @@
   "ITEMPILEFFG.SINGLE_CONTAINER": "Choose one container, with quantity one",
   "ITEMPILEFFG.CURRENCYNAME": "Currency name",
   "ITEMPILEFFG.CURRENCYICON": "Currency image path",
-  "ITEMPILEFFG.CURRENCY_LOOT": "Currency loot"
+  "ITEMPILEFFG.CURRENCY_LOOT": "Currency loot",
+  "ITEMPILEFFG.GIVE": "Give",
+  "ITEMPILEFFG.SAVE_KIT": "Save kit",
+  "ITEMPILEFFG.KITS": "Kits",
+  "ITEMPILEFFG.NEW_KIT": "Create kit",
+  "ITEMPILEFFG.KIT_NAME": "Kit name",
+  "ITEMPILEFFG.KIT_BUILD_HINT": "Set quantities from the Items directory. Zero excludes an item.",
+  "ITEMPILEFFG.KIT_TARGET_HINT": "Select one token and click Grant. Without a selected token, your assigned character is used.",
+  "ITEMPILEFFG.GRANT_KIT": "Grant to selected character",
+  "ITEMPILEFFG.ONE_RECIPIENT": "Select exactly one recipient token",
+  "ITEMPILEFFG.SELECT_RECIPIENT": "Select a recipient token or assign a character",
+  "ITEMPILEFFG.INVALID_KIT": "Invalid or unsupported kit",
+  "ITEMPILEFFG.EMPTY_KIT": "Add at least one item to the kit"
 }

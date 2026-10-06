@@ -1,3 +1,6 @@
+import {inventoryRows} from './inventory-tree.mjs';
+import {saveContainerKit,grantKit,createKitDialog,enhanceKitDirectory,handleBundleDrop} from './kits.mjs';
+import {enhanceActorContainers} from './actor-containers.mjs';
 import {currencyConfig,syncCurrency,createCurrencyLoot} from './currency.mjs';
 import {extendSchemas} from './schema.mjs';
 import {PHYSICAL_TYPES, descendants, contentsMass, itemMass, movePatch, validateMoney} from './inventory.mjs';
@@ -8,7 +11,7 @@ const esc = value => foundry.utils.escapeHTML(String(value ?? ''));
 const t = key => game.i18n.localize(`ITEMPILEFFG.${key}`);
 const errorText = error => {
     const keys = {'Container cycle':'CYCLE','Container capacity exceeded':'CAPACITY_ERROR','Invalid money':'INVALID_MONEY',
-        'Single container required':'SINGLE_CONTAINER','Physical item required':'UNKNOWN_ITEM'};
+        'Single container required':'SINGLE_CONTAINER','Physical item required':'UNKNOWN_ITEM','Invalid kit':'INVALID_KIT'};
     return keys[error.message] ? t(keys[error.message]) : error.message;
 };
 const actorFrom = uuid => fromUuidSync(uuid);
@@ -77,38 +80,41 @@ async function editItem(actor, item) {
                 isContainer:form.elements.container.checked,capacity:form.elements.capacity.value});
         }}});
 }
-function createApplications() {
+export function createApplications() {
     const {ApplicationV2} = foundry.applications.api;
     class BasePanel extends ApplicationV2 {
         static DEFAULT_OPTIONS = {classes:['dark-heresy','dh-party-app'], position:{width:760,height:520}, window:{resizable:true}};
         _replaceHTML(result, content) { content.innerHTML = result; }
     }
     InventoryApp = class extends BasePanel {
-        constructor(actor) { super({window:{title:`${t('INVENTORY')}: ${actor.name}`}}); this.actor = actor; }
+        constructor(actor) { super({window:{title:`${t('INVENTORY')}: ${actor.name}`}}); this.actor = actor; this.expanded = new Set(); }
         async close(options) { inventoryWindows.delete(this); return super.close(options); }
         async _renderHTML() {
             const actor = this.actor; owned(actor);
             const items = [...actor.items].filter(i => PHYSICAL_TYPES.has(i.type)), containers = items.filter(i => i.system.inventory?.isContainer);
-            const rows = []; const seen = new Set();
-            const walk = (parentId, depth) => {
-                for (const item of items.filter(i => (i.system.inventory?.containerId || '') === parentId)) {
-                    if (seen.has(item.id)) continue;
-                    seen.add(item.id); rows.push({item, depth}); walk(item.id, depth+1);
-                }
-            };
-            walk('',0); for (const item of items) if (!seen.has(item.id)) {rows.push({item,depth:0}); seen.add(item.id); walk(item.id,1);}
+            const rows = inventoryRows(items,this.expanded).filter(row=>!row.hidden);
             return `<div class="dh-party-content"><div class="dh-party-toolbar"><strong>${esc(currencyConfig().name)}: ${Number(actor.system.economy?.credits) || 0}</strong>
                 ${game.user.isGM ? `<button data-action="wallet">${esc(t('EDIT_WALLET'))}</button>` : ''}${game.user.isGM ? `<button data-action="currency-loot">${esc(t('CURRENCY_LOOT'))}</button>` : ''}<button data-action="bag">${esc(t('NEW_BAG'))}</button></div>
                 <p>${esc(t('TOTAL_WEIGHT'))}: ${items.reduce((sum,item) => sum + itemMass(item),0).toFixed(2)} kg</p>
                 ${rows.map(({item,depth}) => `<div class="dh-inventory-row" draggable="true" data-item="${esc(item.id)}" style="padding-left:${Math.min(depth,10)*16}px">
-                    <img src="${esc(item.img)}" alt=""><span>${esc(item.name)} ×${Number(item.system.quantity ?? 1)}<br><small>${Number(item.system.price)||0} ${esc(currencyConfig().name)} · ${itemMass(item).toFixed(2)} kg${item.system.inventory?.isContainer ? ` · ${esc(t('CONTENTS'))}: ${contentsMass(items,item.id).toFixed(2)} / ${Number(item.system.inventory.capacity)||'∞'} kg` : ''}</small></span>
+                    ${item.system.inventory?.isContainer ? `<button type="button" data-action="toggle" aria-expanded="${this.expanded.has(item.id)}" aria-label="${esc(t('CONTENTS'))}: ${esc(item.name)}">${this.expanded.has(item.id)?'▾':'▸'}</button>` : '<span class="ipf-indent"></span>'}<img src="${esc(item.img)}" alt=""><span>${esc(item.name)} ×${Number(item.system.quantity ?? 1)}<br><small>${Number(item.system.price)||0} ${esc(currencyConfig().name)} · ${itemMass(item).toFixed(2)} kg${item.system.inventory?.isContainer ? ` · ${esc(t('CONTENTS'))}: ${contentsMass(items,item.id).toFixed(2)} / ${Number(item.system.inventory.capacity)||'∞'} kg` : ''}</small></span>
                     <select aria-label="${esc(t('MOVE'))}" data-container="${esc(item.id)}"><option value="">${esc(t('ROOT'))}</option>${containers.filter(c => c.id !== item.id && !descendants(items,item.id).some(child => child.id===c.id)).map(c => `<option value="${esc(c.id)}" ${item.system.inventory?.containerId === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
-                    <button data-action="edit">${esc(t('EDIT'))}</button><button data-action="item-sheet">${esc(t('SHEET'))}</button></div>`).join('')}</div>`;
+                    <button data-action="give">${esc(t('GIVE'))}</button>${item.system.inventory?.isContainer && game.user.isGM ? `<button data-action="save-kit">${esc(t('SAVE_KIT'))}</button>` : ''}<button data-action="edit">${esc(t('EDIT'))}</button><button data-action="item-sheet">${esc(t('SHEET'))}</button></div>`).join('')}</div>`;
         }
         _onRender(context, options) {
             super._onRender(context,options);
             bind(this, async (action,button) => {
                 const item = this.actor.items.get(button.closest('[data-item]')?.dataset.item);
+                if (action === 'toggle') {
+                    if(this.expanded.has(item.id))this.expanded.delete(item.id);else this.expanded.add(item.id);
+                    return this.render(true);
+                }
+                if (action === 'save-kit') await saveContainerKit(this.actor,item.id);
+                if (action === 'give') {
+                    owned(this.actor);
+                    if(!game.itempiles?.API?.giveItem)throw new Error(t('INSTALL_ITEM_PILES'));
+                    await game.itempiles.API.giveItem(item);
+                }
                 if (action === 'edit') await editItem(this.actor,item);
                 if (action === 'item-sheet') return item.sheet.render(true);
                 if (action === 'wallet') {
@@ -172,7 +178,7 @@ Hooks.once('ready', () => {
     if (missing.length) ui.notifications.error(`${t('INSTALL_ITEM_PILES')}: ${missing.join(', ')}`, {permanent:true});
     createApplications();
     void syncCurrency().catch(error=>ui.notifications.error(error.message));
-    const api = {version:1, openInventory, moveItem, configureItem, createMerchantFromSelected:makeMerchant, repairEconomy:() => repairEconomy(true),createCurrencyLoot};
+    const api = {version:1, openInventory, moveItem, configureItem, createMerchantFromSelected:makeMerchant, repairEconomy:() => repairEconomy(true),createCurrencyLoot,saveContainerKit,grantKit,createKitDialog};
     game.itempileffg = api; game.modules.get(SCOPE).api = api;
     for (const hook of ['updateActor','createItem','updateItem','deleteItem']) Hooks.on(hook, () => {
         for (const app of inventoryWindows) if (app.rendered) app.render(true);
@@ -225,7 +231,9 @@ export function enhanceItemSheet(app, html) {
     const item = app.item ?? app.document ?? app.object;
     if (item?.documentName !== 'Item') return;
     const root = html?.querySelector ? html : html?.[0] ?? app.element?.[0] ?? app.element;
-    if (!root || root.querySelector('[name="system.price"]')) return;
+    if (!root) return;
+    enhanceQuantityField(app, root, item);
+    if (root.querySelector('[name="system.price"]')) return;
     const anchor = root.querySelector('.sheet-header') ?? root.querySelector('form') ?? root;
     const row = document.createElement('div'); row.className = 'itempileffg-price-field';
     const label = document.createElement('label'); label.textContent = `${t('PRICE')} (${currencyConfig().name})`;
@@ -249,3 +257,37 @@ export function enhanceItemSheet(app, html) {
 Hooks.on('renderItemSheet', enhanceItemSheet);
 Hooks.on('renderItemSheetV2', enhanceItemSheet);
 Hooks.on('renderApplicationV2', enhanceItemSheet);
+
+/** Reuse the inventory quantity, including existing ammunition fields. */
+export function enhanceQuantityField(app, root, item) {
+    if (!PHYSICAL_TYPES.has(item.type) || root.querySelector('[name="system.quantity"]')) return;
+    const anchor = root.querySelector('.stats') ?? root.querySelector('form') ?? root;
+    const row = document.createElement('div'); row.className = 'form-group itempileffg-price-field';
+    const label = document.createElement('label'); label.textContent = t('QUANTITY');
+    const input = document.createElement('input'); input.type = 'number'; input.name = 'system.quantity';
+    input.min = '0'; input.step = '1'; input.value = String(item.system.quantity ?? 1);
+    input.disabled = !item.isOwner || app.isEditable === false;
+    label.append(input); row.append(label); anchor.append(row);
+    input.addEventListener('change', async event => {
+        event.stopPropagation();
+        try {
+            if (!item.isOwner || app.isEditable === false) throw new Error(t('NO_PERMISSION'));
+            const quantity = Number(input.value);
+            if (!input.value.trim() || !Number.isInteger(quantity) || quantity < 0 || item.system.inventory?.isContainer && quantity !== 1)
+                throw new Error(t('INVALID_QUANTITY'));
+            if (item.parent?.documentName === 'Actor') {
+                await configureItem({actorUuid:item.parent.uuid,itemId:item.id,quantity,
+                    price:item.system.price ?? 0,isContainer:!!item.system.inventory?.isContainer,capacity:item.system.inventory?.capacity ?? 0});
+            } else await item.update({'system.quantity':quantity});
+            input.setCustomValidity('');
+        } catch(error) {
+            input.setCustomValidity(errorText(error)); input.reportValidity();
+            input.value = String(item.system.quantity ?? 1); ui.notifications.error(errorText(error));
+        }
+    });
+}
+
+Hooks.on('renderActorSheet',enhanceActorContainers);
+Hooks.on('renderActorSheetV2',enhanceActorContainers);
+Hooks.on('renderItemDirectory',enhanceKitDirectory);
+Hooks.on('dropActorSheetData',handleBundleDrop);

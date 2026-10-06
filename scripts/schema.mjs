@@ -8,8 +8,14 @@ export function extendSchemas(config = CONFIG, runtime = foundry) {
     for (const [type, Base] of Object.entries(config.Actor.dataModels)) {
         if (Base.defineSchema().economy) continue;
         config.Actor.dataModels[type] = class extends Base {
+            constructor(data = {}, options = {}) {
+                // Embedded-document changes reset existing Actors with cleaning disabled.
+                // Their persisted source may predate this module's wallet field.
+                super(data.economy === undefined ? {...data,economy:{credits:0}} : data, options);
+            }
             static defineSchema() {
-                return {...super.defineSchema(),economy:new f.SchemaField({credits:number(0)})};
+                return {...super.defineSchema(),economy:new f.SchemaField({credits:number(0)},
+                    {required:true,nullable:false,initial:() => ({credits:0})})};
             }
         };
     }
@@ -23,6 +29,11 @@ export function extendSchemas(config = CONFIG, runtime = foundry) {
         const fields = Base.defineSchema();
         if (fields.quantity && fields.price && fields.inventory) continue;
         config.Item.dataModels[type] = class extends Base {
+            constructor(data = {}, options = {}) {
+                super(!fields.inventory && data.inventory === undefined
+                    ? {...data,inventory:{containerId:'',parentKey:'',containerKey:'',isContainer:false,capacity:0}}
+                    : data, options);
+            }
             static defineSchema() {
                 const schema = super.defineSchema();
                 return {...schema,
@@ -33,7 +44,7 @@ export function extendSchemas(config = CONFIG, runtime = foundry) {
                         parentKey:new f.StringField({initial:'',blank:true}),
                         containerKey:new f.StringField({initial:'',blank:true}),
                         isContainer:new f.BooleanField({initial:false}),capacity:number(0)
-                    })
+                    }, {required:true,nullable:false,initial:() => ({containerId:'',parentKey:'',containerKey:'',isContainer:false,capacity:0})})
                 };
             }
         };

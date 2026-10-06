@@ -39,3 +39,16 @@ body.itempileffg-active .item-piles-app :is(.item-name,.item-piles-item-row span
 .itempileffg-price-field input {max-width:160px;}
 body.itempileffg-active .item-piles-app .item-piles-item-row :is(span,a),
 body.itempileffg-active .item-piles-app .item-piles-flexrow > span {color:#171d23!important;}
+
+.ipf-container {margin:4px 0 4px 12px;border-left:2px solid #9b8046;padding-left:8px;}
+.ipf-container summary {cursor:pointer;padding:6px;color:#d8c290;}
+.ipf-container-items .gear-block {margin-left:6px;}
+.ipf-kits {padding:8px;border:1px solid #8c7445;border-radius:4px;margin:6px 0;}
+.ipf-kits summary {cursor:pointer;font-weight:bold;padding:6px 0;}
+.ipf-kits p {font-size:.85em;line-height:1.4;}
+.ipf-kits ul {padding-left:20px;}
+.ipf-kit-picker {max-height:350px;overflow:auto;}
+.ipf-kit-picker label {display:flex;justify-content:space-between;align-items:center;gap:12px;}
+.ipf-kit-picker input {max-width:80px;}
+.dh-inventory-row .ipf-indent {flex:0 0 20px;min-width:20px;}
+.dh-inventory-row [data-action=toggle] {min-width:24px;flex:0 0 24px;}
