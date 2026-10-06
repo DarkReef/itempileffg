@@ -60,3 +60,12 @@ test('economy rejects negative or nonfinite balances and integration maps real s
     const original={type:'gear',system:{equipped:true,inventory:{isContainer:true,containerKey:'bag'}}};
     const copy=config.ITEM_TRANSFORMER(original);assert.equal(original.system.equipped,true);assert.equal(copy.flags['item-piles'].item.canStack,'no');
 });
+
+test('legacy bags without stable keys retain nested content during remapping',()=>{
+    const config=integrationConfig();
+    const bag=config.ITEM_TRANSFORMER({_id:'oldBag',type:'gear',system:{quantity:1,inventory:{isContainer:true,containerKey:''}}});
+    const child=config.ITEM_TRANSFORMER({_id:'oldChild',type:'gear',system:{quantity:2,inventory:{containerId:'oldBag',parentKey:''}}});
+    bag._id='newBag';child._id='newChild';
+    remapContainers({map:{oldBag:{item:bag,items:[child]}}});
+    assert.equal(child.system.inventory.containerId,'newBag');assert.equal(child.system.inventory.parentKey,'newBag');assert.equal(bag.system.inventory.containerKey,'newBag');
+});

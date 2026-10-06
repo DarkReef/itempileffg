@@ -51,5 +51,17 @@
   "ITEMPILEFFG.SINGLE_CONTAINER": "Выберите контейнер в одном экземпляре",
   "ITEMPILEFFG.CURRENCYNAME": "Название валюты",
   "ITEMPILEFFG.CURRENCYICON": "Значок валюты (путь к изображению)",
-  "ITEMPILEFFG.CURRENCY_LOOT": "Валюта на карту"
+  "ITEMPILEFFG.CURRENCY_LOOT": "Валюта на карту",
+  "ITEMPILEFFG.GIVE": "Передать",
+  "ITEMPILEFFG.SAVE_KIT": "Сохранить комплект",
+  "ITEMPILEFFG.KITS": "Комплекты",
+  "ITEMPILEFFG.NEW_KIT": "Создать комплект",
+  "ITEMPILEFFG.KIT_NAME": "Название комплекта",
+  "ITEMPILEFFG.KIT_BUILD_HINT": "Укажите количество предметов из боковой панели. Ноль — не включать.",
+  "ITEMPILEFFG.KIT_TARGET_HINT": "Выберите один токен и нажмите «Выдать». Без выбранного токена используется назначенный персонаж.",
+  "ITEMPILEFFG.GRANT_KIT": "Выдать выбранному персонажу",
+  "ITEMPILEFFG.ONE_RECIPIENT": "Выберите только один токен получателя",
+  "ITEMPILEFFG.SELECT_RECIPIENT": "Выберите токен получателя или назначьте персонажа",
+  "ITEMPILEFFG.INVALID_KIT": "Повреждённый или неподдерживаемый комплект",
+  "ITEMPILEFFG.EMPTY_KIT": "Добавьте хотя бы один предмет в комплект"
 }

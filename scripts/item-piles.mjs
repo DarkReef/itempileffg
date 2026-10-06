@@ -29,6 +29,12 @@ export function integrationConfig() {
             const copy = structuredClone(data);
             if (!PHYSICAL_TYPES.has(copy.type)) return copy;
             copy.system ??= {}; copy.system.equipped = false;
+            // Older backpacks may not yet have stable keys. Seed them before
+            // Item Piles assigns new document IDs to the destination inventory.
+            if (copy.system.inventory) {
+                if (copy.system.inventory.isContainer) copy.system.inventory.containerKey ||= copy._id;
+                copy.system.inventory.parentKey ||= copy.system.inventory.containerId || '';
+            }
             if (copy.system.inventory?.isContainer) {
                 copy.flags ??= {}; copy.flags['dark-heresy'] ??= {};
                 copy.flags['dark-heresy'].containerOrigin = copy.system.inventory.containerKey;
@@ -57,7 +63,7 @@ export function prepareContainerTrade(seller, sellerUpdates, buyer, buyerUpdates
     for (const root of buyerUpdates.itemsToCreate) {
         const origin = root.flags?.['dark-heresy']?.containerOrigin;
         if (!origin || !root.system?.inventory?.isContainer) continue;
-        const source = [...seller.items].find(i => i.system?.inventory?.containerKey === origin);
+        const source = [...seller.items].find(i => (i.system?.inventory?.containerKey || i.id) === origin);
         if (!source) continue;
         const children = descendants([...seller.items], source.id);
         if (!children.length) continue;
