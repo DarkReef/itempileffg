@@ -1,4 +1,4 @@
-# ItemPileFFG 0.1.0
+# ItemPileFFG 0.1.4
 
 Отдельный модуль Foundry VTT 14 для Apex Heresy (`dark-heresy`, версия 1.4.2+): адаптер Item Piles, кредиты, цены, торговцы и вложенные рюкзаки. Riftan Charbar не требуется.
 
@@ -75,15 +75,17 @@ Run `npm test` in this repository. The system is installed separately.
 The manual release workflow creates a draft release with this module only.
 Live multiplayer validation against the new system build is still pending.
 
-## Private repository distribution
+## Установка из публичного репозитория
 
-This repository is private. Release URLs require GitHub access and are not public
-Foundry installation endpoints. Releases have not been published yet. After a
-release is approved, download its module ZIP while signed in to GitHub and extract
-it into `Data/modules/itempileffg`, with `module.json` directly in that folder.
-Do not embed access tokens in manifests or installation URLs.
+В Foundry → Add-on Modules → Install Module вставьте URL манифеста:
 
-## Раскрываемые рюкзаки и комплекты (ветка разработки)
+```text
+https://github.com/DarkReef/itempileffg/releases/latest/download/module.json
+```
+
+Манифест и ZIP доступны без авторизации. Для обновления используйте штатную проверку обновлений Foundry. Рекомендуемая система — Apex Heresy RU 1.5.3; система устанавливается отдельно.
+
+## Раскрываемые рюкзаки и комплекты
 
 - В обычной вкладке снаряжения контейнер раскрывается стрелкой «Содержимое». Внутри могут находиться другие раскрываемые контейнеры. Исходные строки предметов сохраняют штатные действия листа.
 - В окне «Рюкзаки и торговля» рядом с рюкзаком появилась стрелка; выбор контейнера для предмета по-прежнему проверяет циклы и вместимость всех предков.
