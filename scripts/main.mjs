@@ -1,6 +1,8 @@
+import {saveContainerKit,grantKit} from './kits.mjs';
 import {inventoryRows} from './inventory-tree.mjs';
-import {saveContainerKit,grantKit,createKitDialog,enhanceKitDirectory,handleBundleDrop} from './kits.mjs';
-import {enhanceActorContainers} from './actor-containers.mjs';
+import {moveWithinActor,instantiateTemplate,serializeTemplate,inventoryLock,prepareTargetContainer} from './container-service.mjs';
+import {enhanceContainerSheet,registerDragTracking} from './container-ui.mjs';
+import {enhanceActorContainers} from './actor-inventory-ui.mjs';
 import {currencyConfig,syncCurrency,createCurrencyLoot} from './currency.mjs';
 import {extendSchemas} from './schema.mjs';
 import {PHYSICAL_TYPES, descendants, contentsMass, itemMass, movePatch, validateMoney} from './inventory.mjs';
@@ -15,22 +17,12 @@ const errorText = error => {
     return keys[error.message] ? t(keys[error.message]) : error.message;
 };
 const actorFrom = uuid => fromUuidSync(uuid);
-const queues = new Map();
+
 const inventoryWindows = new Set();
 let InventoryApp;
 function owned(actor) { if (!actor?.isOwner && !game.user.isGM) throw new Error(t('NO_PERMISSION')); }
-function locked(uuid, operation) {
-    const next = (queues.get(uuid) ?? Promise.resolve()).catch(() => {}).then(operation);
-    queues.set(uuid, next); next.finally(() => { if (queues.get(uuid) === next) queues.delete(uuid); }).catch(() => {});
-    return next;
-}
-export async function moveItem({actorUuid, itemId, containerId = ''}) {
-    return locked(actorUuid, async () => {
-        const actor = await fromUuid(actorUuid); owned(actor);
-        const patch = movePatch([...actor.items], itemId, containerId);
-        await actor.updateEmbeddedDocuments('Item', [patch]); return patch;
-    });
-}
+const locked=inventoryLock;
+export async function moveItem({actorUuid,itemId,containerId=''}) {return moveWithinActor(await fromUuid(actorUuid),itemId,containerId);}
 export async function configureItem({actorUuid, itemId, price, quantity, isContainer, capacity}) {
     return locked(actorUuid, async () => {
         const actor = await fromUuid(actorUuid); owned(actor);
@@ -99,7 +91,7 @@ export function createApplications() {
                 ${rows.map(({item,depth}) => `<div class="dh-inventory-row" draggable="true" data-item="${esc(item.id)}" style="padding-left:${Math.min(depth,10)*16}px">
                     ${item.system.inventory?.isContainer ? `<button type="button" data-action="toggle" aria-expanded="${this.expanded.has(item.id)}" aria-label="${esc(t('CONTENTS'))}: ${esc(item.name)}">${this.expanded.has(item.id)?'▾':'▸'}</button>` : '<span class="ipf-indent"></span>'}<img src="${esc(item.img)}" alt=""><span>${esc(item.name)} ×${Number(item.system.quantity ?? 1)}<br><small>${Number(item.system.price)||0} ${esc(currencyConfig().name)} · ${itemMass(item).toFixed(2)} kg${item.system.inventory?.isContainer ? ` · ${esc(t('CONTENTS'))}: ${contentsMass(items,item.id).toFixed(2)} / ${Number(item.system.inventory.capacity)||'∞'} kg` : ''}</small></span>
                     <select aria-label="${esc(t('MOVE'))}" data-container="${esc(item.id)}"><option value="">${esc(t('ROOT'))}</option>${containers.filter(c => c.id !== item.id && !descendants(items,item.id).some(child => child.id===c.id)).map(c => `<option value="${esc(c.id)}" ${item.system.inventory?.containerId === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
-                    <button data-action="give">${esc(t('GIVE'))}</button>${item.system.inventory?.isContainer && game.user.isGM ? `<button data-action="save-kit">${esc(t('SAVE_KIT'))}</button>` : ''}<button data-action="edit">${esc(t('EDIT'))}</button><button data-action="item-sheet">${esc(t('SHEET'))}</button></div>`).join('')}</div>`;
+                    <button data-action="give">${esc(t('GIVE'))}</button><button data-action="edit">${esc(t('EDIT'))}</button><button data-action="item-sheet">${esc(t('SHEET'))}</button></div>`).join('')}</div>`;
         }
         _onRender(context, options) {
             super._onRender(context,options);
@@ -109,7 +101,6 @@ export function createApplications() {
                     if(this.expanded.has(item.id))this.expanded.delete(item.id);else this.expanded.add(item.id);
                     return this.render(true);
                 }
-                if (action === 'save-kit') await saveContainerKit(this.actor,item.id);
                 if (action === 'give') {
                     owned(this.actor);
                     if(!game.itempiles?.API?.giveItem)throw new Error(t('INSTALL_ITEM_PILES'));
@@ -171,14 +162,15 @@ Hooks.once('setup', () => {
     }
 });
 Hooks.on('item-piles-preTradeItems', guardContainerTrade);
+Hooks.on('item-piles-preTransferItems', (...args)=>{try{return prepareTargetContainer(...args);}catch(error){ui.notifications.error(errorText(error));return false;}});
 Hooks.once('ready', () => {
     if (game.system.id !== 'dark-heresy') return;
     document.body.classList.add('itempileffg-active');
     const missing = ['item-piles','lib-wrapper','socketlib'].filter(id => !game.modules.get(id)?.active);
     if (missing.length) ui.notifications.error(`${t('INSTALL_ITEM_PILES')}: ${missing.join(', ')}`, {permanent:true});
-    createApplications();
+    createApplications(); registerDragTracking();
     void syncCurrency().catch(error=>ui.notifications.error(error.message));
-    const api = {version:1, openInventory, moveItem, configureItem, createMerchantFromSelected:makeMerchant, repairEconomy:() => repairEconomy(true),createCurrencyLoot,saveContainerKit,grantKit,createKitDialog};
+    const api = {version:1, openInventory, moveItem, configureItem, createMerchantFromSelected:makeMerchant, repairEconomy:() => repairEconomy(true),createCurrencyLoot,instantiateTemplate,serializeTemplate,saveContainerKit,grantKit};
     game.itempileffg = api; game.modules.get(SCOPE).api = api;
     for (const hook of ['updateActor','createItem','updateItem','deleteItem']) Hooks.on(hook, () => {
         for (const app of inventoryWindows) if (app.rendered) app.render(true);
@@ -233,6 +225,7 @@ export function enhanceItemSheet(app, html) {
     const root = html?.querySelector ? html : html?.[0] ?? app.element?.[0] ?? app.element;
     if (!root) return;
     enhanceQuantityField(app, root, item);
+    enhanceContainerSheet(app,root,item);
     if (root.querySelector('[name="system.price"]')) return;
     const anchor = root.querySelector('.sheet-header') ?? root.querySelector('form') ?? root;
     const row = document.createElement('div'); row.className = 'itempileffg-price-field';
@@ -289,5 +282,3 @@ export function enhanceQuantityField(app, root, item) {
 
 Hooks.on('renderActorSheet',enhanceActorContainers);
 Hooks.on('renderActorSheetV2',enhanceActorContainers);
-Hooks.on('renderItemDirectory',enhanceKitDirectory);
-Hooks.on('dropActorSheetData',handleBundleDrop);

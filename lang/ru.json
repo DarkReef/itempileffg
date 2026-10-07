@@ -35,7 +35,7 @@
   "ITEMPILEFFG.TOTAL_WEIGHT": "Общий вес",
   "ITEMPILEFFG.CONTENTS": "Содержимое",
   "ITEMPILEFFG.MOVE": "Поместить в контейнер",
-  "ITEMPILEFFG.ROOT": "Вне контейнера",
+  "ITEMPILEFFG.ROOT": "Вне контейнеров",
   "ITEMPILEFFG.EDIT": "Настроить",
   "ITEMPILEFFG.SELECT_ACTORS": "Выберите участников проверки",
   "ITEMPILEFFG.TEST": "Проверка",
@@ -63,5 +63,13 @@
   "ITEMPILEFFG.ONE_RECIPIENT": "Выберите только один токен получателя",
   "ITEMPILEFFG.SELECT_RECIPIENT": "Выберите токен получателя или назначьте персонажа",
   "ITEMPILEFFG.INVALID_KIT": "Повреждённый или неподдерживаемый комплект",
-  "ITEMPILEFFG.EMPTY_KIT": "Добавьте хотя бы один предмет в комплект"
+  "ITEMPILEFFG.EMPTY_KIT": "Добавьте хотя бы один предмет в комплект",
+  "ITEMPILEFFG.OWN_WEIGHT": "Собственный вес",
+  "ITEMPILEFFG.DROP_ROOT": "Перетащите сюда, чтобы вынуть из контейнера",
+  "ITEMPILEFFG.DROP_CONTENTS": "Перетащите сюда предметы",
+  "ITEMPILEFFG.REMOVE_CONTENT": "Удалить",
+  "ITEMPILEFFG.EXTRACT": "Вынуть",
+  "ITEMPILEFFG.MOVE_TO": "Поместить в…",
+  "ITEMPILEFFG.CONTAINER_SETTINGS": "Открыть / настроить контейнер",
+  "ITEMPILEFFG.TRANSFER_ROOT_FIRST": "Сначала передайте персонажу, затем переместите в рюкзак"
 }
