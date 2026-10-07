@@ -1,5 +1,6 @@
 import {currencyConfig} from './currency.mjs';
-import {PHYSICAL_TYPES, descendants, remapContainers, contentsMass, validateMoney} from './inventory.mjs';
+import {PHYSICAL_TYPES,validateMoney} from './inventory.mjs';
+import {getDescendants as descendants,remapTree as remapContainers,contentsMass,snapshotBundle,instantiateBundle} from './container-service.mjs';
 
 export function integrationConfig() {
     const handlers = {
@@ -80,19 +81,10 @@ export function prepareContainerTrade(seller, sellerUpdates, buyer, buyerUpdates
     const used = new Set([...buyer.items].map(item => item.id).concat(buyerUpdates.itemsToCreate.map(item => item._id)));
     const uniqueID = () => { for (let i=0;i<100;i++) {const candidate=randomID();if (!used.has(candidate)) {used.add(candidate);return candidate;}} throw new Error('Cannot allocate item ID'); };
     const expanded = plans.map(({root,source,children,remove}) => {
-        const map = new Map([[source.id, root._id]]);
-        const copies = children.map(child => {
-            const data = child.toObject(); data._id = uniqueID(); map.set(child.id,data._id);
-            data.system.equipped = false;
-            data.flags ??= {}; data.flags['item-piles'] ??= {}; data.flags['item-piles'].item ??= {};
-            data.flags['item-piles'].item.canStack = 'no';
-            return data;
-        });
-        for (const copy of copies) {
-            const parent = map.get(copy.system.inventory.containerId);
-            copy.system.inventory.containerId = parent; copy.system.inventory.parentKey = parent;
-            if (copy.system.inventory.isContainer) copy.system.inventory.containerKey = copy._id;
-        }
+        let first=true;
+        const copies=instantiateBundle(snapshotBundle([...seller.items],source.id),()=>{
+            if(first){first=false;return root._id;}return uniqueID();
+        }).slice(1);
         return {root,source,children,remove,copies};
     });
     for (const {root,children,remove,copies} of expanded) {

@@ -31,7 +31,8 @@ export function movePatch(items, itemId, containerId = '') {
         parent = moved.find(i => id(i) === parent.system.inventory.containerId);
     }
     return {_id:itemId, 'system.inventory.containerId':containerId,
-        'system.inventory.parentKey':target?.system.inventory.containerKey ?? ''};
+        'system.inventory.parentKey':target ? target.system.inventory.containerKey || id(target) : '',
+        ...(containerId ? {'system.equipped':false} : {})};
 }
 /** Recover all nesting levels after Item Piles assigns destination Item IDs. */
 export function remapContainers({map}) {

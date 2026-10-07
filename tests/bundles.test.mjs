@@ -2,7 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {snapshotBundle,instantiateBundle} from '../scripts/bundles.mjs';
 import {inventoryRows} from '../scripts/inventory-tree.mjs';
-import {grantKit,handleBundleDrop} from '../scripts/kits.mjs';
+import {grantKit} from '../scripts/kits.mjs';
+import {receiveActorDrop} from '../scripts/container-ui.mjs';
 const item=(id,parent='',bag=false)=>({_id:id,id,name:id,type:'gear',system:{quantity:1,weight:1,price:3,inventory:{isContainer:bag,containerId:parent,parentKey:parent,containerKey:bag?id:'',capacity:bag?10:0}}});
 const tree=()=>[item('bag','',true),item('pouch','bag',true),{...item('ammo','pouch'),system:{...item('ammo','pouch').system,quantity:4}},item('loose')];
 
@@ -28,17 +29,17 @@ test('invalid bundles fail before document creation',()=>{
 test('kit grant enforces GM and recipient ownership and coalesces simultaneous clicks',async()=>{
  const before={game:globalThis.game,foundry:globalThis.foundry};let n=0,calls=0,release;
  globalThis.game={user:{isGM:true},i18n:{localize:k=>k}};globalThis.foundry={utils:{randomID:()=>`new${++n}`}};
- const data=snapshotBundle(tree(),'bag');const kit={uuid:'Item.kit',name:'Field kit',img:'bag.webp',system:{price:25},getFlag:()=>({version:1,items:data})};
+ const data=snapshotBundle(tree(),'bag');const kit={...item('kit','',true),uuid:'Item.kit',name:'Field kit',img:'bag.webp',flags:{itempileffg:{kit:{version:1,items:data}}},system:{...item('kit','',true).system,price:25}};
  const actor={uuid:'Actor.a',isOwner:true,items:[],createEmbeddedDocuments:async(_type,items,options)=>{calls++;assert.equal(options.keepId,true);await new Promise(resolve=>release=resolve);return items;}};
- try{const first=grantKit(kit,actor),second=grantKit(kit,actor);assert.equal(calls,1);release();const [a,b]=await Promise.all([first,second]);assert.equal(a,b);assert.equal(a[0].name,'Field kit');assert.equal(data[0].name,'bag');
+ try{const first=grantKit(kit,actor),second=grantKit(kit,actor);await new Promise(resolve=>setImmediate(resolve));assert.equal(calls,1);release();const [a,b]=await Promise.all([first,second]);assert.equal(a,b);assert.equal(a[0].name,'Field kit');assert.equal(data[0].name,'bag');
  game.user.isGM=false;await assert.rejects(grantKit(kit,actor),/GM_ONLY/);game.user.isGM=true;actor.isOwner=false;await assert.rejects(grantKit(kit,actor),/NO_PERMISSION/);
  }finally{Object.assign(globalThis,before);}
 });
-test('dragging an owned bag suppresses root-only copy and delegates full transfer',async()=>{
+test('owned bag transfer delegates the full subtree to Item Piles',async()=>{
  const before={game:globalThis.game,fromUuidSync:globalThis.fromUuidSync,ui:globalThis.ui};let call;
  const source={documentName:'Actor',uuid:'Actor.source',isOwner:true},target={uuid:'Actor.target',isOwner:true};
  globalThis.game={system:{id:'dark-heresy'},i18n:{localize:k=>k},itempiles:{API:{transferItems:async(...args)=>{call=args;}}}};
  globalThis.fromUuidSync=()=>({...item('bag','',true),parent:source});globalThis.ui={notifications:{error:()=>{}}};
- try{assert.equal(handleBundleDrop(target,null,{type:'Item',uuid:'Actor.source.Item.bag'}),false);await Promise.resolve();assert.deepEqual(call,[source,target,['bag']]);
+ try{await receiveActorDrop(target,fromUuidSync());assert.deepEqual(call,[source,target,['bag']]);
  }finally{Object.assign(globalThis,before);}
 });

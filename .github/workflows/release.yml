@@ -12,7 +12,7 @@ jobs:
         with:
           node-version: '22'
       - run: npm test
-      - run: zip -r itempileffg.zip module.json scripts lang style.css LICENSE README.md
+      - run: zip -r itempileffg.zip module.json scripts lang style.css LICENSE README.md docs
       - env:
           GH_TOKEN: ${{ github.token }}
         run: |

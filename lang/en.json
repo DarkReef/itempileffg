@@ -35,7 +35,7 @@
   "ITEMPILEFFG.TOTAL_WEIGHT": "Total weight",
   "ITEMPILEFFG.CONTENTS": "Contents",
   "ITEMPILEFFG.MOVE": "Move into container",
-  "ITEMPILEFFG.ROOT": "Outside container",
+  "ITEMPILEFFG.ROOT": "Outside containers",
   "ITEMPILEFFG.EDIT": "Configure",
   "ITEMPILEFFG.SELECT_ACTORS": "Select participants",
   "ITEMPILEFFG.TEST": "Test",
@@ -63,5 +63,13 @@
   "ITEMPILEFFG.ONE_RECIPIENT": "Select exactly one recipient token",
   "ITEMPILEFFG.SELECT_RECIPIENT": "Select a recipient token or assign a character",
   "ITEMPILEFFG.INVALID_KIT": "Invalid or unsupported kit",
-  "ITEMPILEFFG.EMPTY_KIT": "Add at least one item to the kit"
+  "ITEMPILEFFG.EMPTY_KIT": "Add at least one item to the kit",
+  "ITEMPILEFFG.OWN_WEIGHT": "Own weight",
+  "ITEMPILEFFG.DROP_ROOT": "Drop here to take out of a container",
+  "ITEMPILEFFG.DROP_CONTENTS": "Drop items here",
+  "ITEMPILEFFG.REMOVE_CONTENT": "Remove",
+  "ITEMPILEFFG.EXTRACT": "Extract",
+  "ITEMPILEFFG.MOVE_TO": "Put into…",
+  "ITEMPILEFFG.CONTAINER_SETTINGS": "Open / configure container",
+  "ITEMPILEFFG.TRANSFER_ROOT_FIRST": "Transfer to the actor first, then move into the bag"
 }
