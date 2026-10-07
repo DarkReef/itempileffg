@@ -1,7 +1,7 @@
 import {inventoryRows} from './inventory-tree.mjs';
 import {PHYSICAL_TYPES} from './inventory.mjs';
-import {containerMetrics,moveWithinActor} from './container-service.mjs';
-import {bindActorDropZone,bindSheetDrop,movementDialog,report} from './container-ui.mjs';
+import {containerMetrics} from './container-service.mjs';
+import {bindActorDropZone,bindSheetDrop,movementDialog,requestMove,report} from './container-ui.mjs';
 const expandedByActor=new Map();
 const t=key=>game.i18n.localize('ITEMPILEFFG.'+key);
 /** Decorate native rows, preserving edit/chat/delete and native drag payloads. */
@@ -23,7 +23,7 @@ export function enhanceActorContainers(app,html){
   const controls=row.querySelector('.button');
   const action=(text,title,callback)=>{const button=document.createElement('button');button.type='button';button.className='ipf-row-action';button.textContent=text;button.title=t(title);button.disabled=!actor.isOwner;button.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();void callback().catch(report);});controls?.append(button);};
   action('↳','MOVE_TO',()=>movementDialog(actor,item));
-  if(item.system.inventory?.containerId)action('↥','EXTRACT',()=>moveWithinActor(actor,item.id,''));
+  if(item.system.inventory?.containerId)action('↥','EXTRACT',()=>requestMove(actor,item,''));
   action('⚙','CONTAINER_SETTINGS',async()=>item.sheet.render(true));
   const name=row.querySelector('.name');
   if(name){const count=document.createElement('span');count.className='ipf-quantity';count.textContent=` ×${Number(item.system.quantity??1)}`;name.append(count);}

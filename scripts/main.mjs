@@ -1,7 +1,7 @@
 import {saveContainerKit,grantKit} from './kits.mjs';
 import {inventoryRows} from './inventory-tree.mjs';
 import {moveWithinActor,instantiateTemplate,serializeTemplate,inventoryLock,prepareTargetContainer} from './container-service.mjs';
-import {enhanceContainerSheet,registerDragTracking} from './container-ui.mjs';
+import {enhanceContainerSheet,registerDragTracking,requestMove} from './container-ui.mjs';
 import {enhanceActorContainers} from './actor-inventory-ui.mjs';
 import {currencyConfig,syncCurrency,createCurrencyLoot} from './currency.mjs';
 import {extendSchemas} from './schema.mjs';
@@ -22,7 +22,7 @@ const inventoryWindows = new Set();
 let InventoryApp;
 function owned(actor) { if (!actor?.isOwner && !game.user.isGM) throw new Error(t('NO_PERMISSION')); }
 const locked=inventoryLock;
-export async function moveItem({actorUuid,itemId,containerId=''}) {return moveWithinActor(await fromUuid(actorUuid),itemId,containerId);}
+export async function moveItem({actorUuid,itemId,containerId='',quantity=null}) {return moveWithinActor(await fromUuid(actorUuid),itemId,containerId,quantity);}
 export async function configureItem({actorUuid, itemId, price, quantity, isContainer, capacity}) {
     return locked(actorUuid, async () => {
         const actor = await fromUuid(actorUuid); owned(actor);
@@ -128,7 +128,7 @@ export function createApplications() {
             });
             this.element.querySelector('.dh-party-content').addEventListener('change', event => {
                 if (!event.target.matches('[data-container]')) return;
-                moveItem({actorUuid:this.actor.uuid,itemId:event.target.dataset.container,containerId:event.target.value})
+                requestMove(this.actor,this.actor.items.get(event.target.dataset.container),event.target.value)
                     .catch(error => ui.notifications.error(errorText(error))).finally(() => this.render(true));
             });
             this.element.querySelector('.dh-party-content').addEventListener('dragstart', event => {
@@ -151,6 +151,7 @@ Hooks.once('init', () => {
     for (const [key,type,initial] of [['currencyName',String,'Троны'],['currencyIcon',String,'icons/svg/coins.svg']])
         game.settings.register(SCOPE,key,{name:`ITEMPILEFFG.${key.toUpperCase()}`,scope:'world',config:true,type,default:initial,
             onChange:()=>void syncCurrency().catch(error=>ui.notifications.error(error.message))});
+    game.settings.register(SCOPE,'inventoryMessages',{name:'ITEMPILEFFG.INVENTORY_MESSAGES',scope:'world',config:true,type:String,default:'gm',choices:{gm:'ITEMPILEFFG.GM_ONLY',all:'ITEMPILEFFG.EVERYONE',off:'ITEMPILEFFG.OFF'}});
     game.settings.register(SCOPE, 'economyAdapterVersion', {scope:'world',config:false,type:Number,default:0});
 });
 Hooks.once('setup', () => {

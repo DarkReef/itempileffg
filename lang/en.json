@@ -71,5 +71,12 @@
   "ITEMPILEFFG.EXTRACT": "Extract",
   "ITEMPILEFFG.MOVE_TO": "Put into…",
   "ITEMPILEFFG.CONTAINER_SETTINGS": "Open / configure container",
-  "ITEMPILEFFG.TRANSFER_ROOT_FIRST": "Transfer to the actor first, then move into the bag"
+  "ITEMPILEFFG.TRANSFER_ROOT_FIRST": "Transfer to the actor first, then move into the bag",
+  "ITEMPILEFFG.MOVE_QUANTITY": "How many to move?",
+  "ITEMPILEFFG.ALL": "All",
+  "ITEMPILEFFG.INVENTORY_MESSAGES": "Inventory movement messages",
+  "ITEMPILEFFG.EVERYONE": "Everyone",
+  "ITEMPILEFFG.OFF": "Disabled",
+  "ITEMPILEFFG.MESSAGE_FAILED": "Item moved, but the chat notification failed.",
+  "ITEMPILEFFG.MOVE_MESSAGE": "{user} · {actor}: moved “{item}” ×{quantity}: {from} → {to}."
 }

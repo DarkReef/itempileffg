@@ -83,3 +83,6 @@ body.itempileffg-active .item-piles-app .item-piles-flexrow > span {color:#171d2
 .dark-heresy .gear .all-gear .item-list.gear-unified .items[data-ipf-tree] .gear.item > .name {
  padding-left:calc(var(--ipf-depth,0) * 12px);
 }
+
+.ipf-root-drop{display:none}
+body.ipf-dragging .ipf-root-drop{display:block}

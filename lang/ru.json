@@ -2,7 +2,7 @@
   "ITEMPILEFFG.TITLE": "ItemPileFFG",
   "ITEMPILEFFG.CREDITS": "Кредиты",
   "ITEMPILEFFG.NO_PERMISSION": "Нет права управлять этим персонажем",
-  "ITEMPILEFFG.GM_ONLY": "Действие доступно мастеру",
+  "ITEMPILEFFG.GM_ONLY": "Только мастерам",
   "ITEMPILEFFG.REQUEST": "Запросить проверку",
   "ITEMPILEFFG.MISSING_ACTOR": "Персонаж недоступен",
   "ITEMPILEFFG.SUCCESS": "Успех",
@@ -71,5 +71,12 @@
   "ITEMPILEFFG.EXTRACT": "Вынуть",
   "ITEMPILEFFG.MOVE_TO": "Поместить в…",
   "ITEMPILEFFG.CONTAINER_SETTINGS": "Открыть / настроить контейнер",
-  "ITEMPILEFFG.TRANSFER_ROOT_FIRST": "Сначала передайте персонажу, затем переместите в рюкзак"
+  "ITEMPILEFFG.TRANSFER_ROOT_FIRST": "Сначала передайте персонажу, затем переместите в рюкзак",
+  "ITEMPILEFFG.MOVE_QUANTITY": "Сколько переместить?",
+  "ITEMPILEFFG.ALL": "Все",
+  "ITEMPILEFFG.INVENTORY_MESSAGES": "Сообщения о перемещении предметов",
+  "ITEMPILEFFG.EVERYONE": "Всем",
+  "ITEMPILEFFG.OFF": "Выключены",
+  "ITEMPILEFFG.MESSAGE_FAILED": "Предмет перемещён, но сообщение в чат отправить не удалось.",
+  "ITEMPILEFFG.MOVE_MESSAGE": "{user} · {actor}: переместил «{item}» ×{quantity}: {from} → {to}."
 }

@@ -10,10 +10,37 @@ export function inventoryLock(key,operation){
  const next=(queues.get(key)??Promise.resolve()).catch(()=>{}).then(operation);
  queues.set(key,next);next.finally(()=>{if(queues.get(key)===next)queues.delete(key);}).catch(()=>{});return next;
 }
-export async function moveWithinActor(actor,itemId,containerId=''){
+export async function announceMove(actor,item,from,to,quantity){
+ const mode=globalThis.game?.settings?.get('itempileffg','inventoryMessages')??'off';
+ if(mode==='off'||!globalThis.ChatMessage)return;
+ const esc=foundry.utils.escapeHTML;
+ const label=id=>actor.items.get(id)?.name??game.i18n.localize('ITEMPILEFFG.ROOT');
+ const content=game.i18n.format('ITEMPILEFFG.MOVE_MESSAGE',{user:esc(game.user.name),actor:esc(actor.name),item:esc(item.name),quantity,from:esc(label(from)),to:esc(label(to))});
+ const whisper=mode==='gm'?[...game.users].filter(u=>u.isGM).map(u=>u.id):undefined;
+ if(mode==='gm'&&!whisper.length)return;
+ try{await ChatMessage.create({content,whisper,speaker:ChatMessage.getSpeaker({actor})});}
+ catch(error){console.error('ItemPileFFG inventory notification failed',error);globalThis.ui?.notifications?.warn(game.i18n.localize('ITEMPILEFFG.MESSAGE_FAILED'));}
+}
+export async function moveWithinActor(actor,itemId,containerId='',quantity=null){
  requireOwner(actor);return inventoryLock(actor.uuid,async()=>{
-  requireOwner(actor);const patch=movePatch([...actor.items],itemId,containerId);
-  await actor.updateEmbeddedDocuments('Item',[patch]);return patch;
+  requireOwner(actor);const item=actor.items.get(itemId);if(!item)throw new Error('Physical item required');
+  const from=item.system.inventory?.containerId??'';if(from===containerId)return null;
+  const total=Number(item.system.quantity??1),amount=quantity??total;
+  if(!Number.isSafeInteger(amount)||amount<1||amount>total)throw new Error('INVALID_QUANTITY');
+  if(amount<total){
+   if(item.system.inventory?.isContainer||descendants([...actor.items],itemId).length)throw new Error('Single container required');
+   const copy=source(item);delete copy.id;copy._id=foundry.utils.randomID();copy.system.quantity=amount;
+   const projected=[...actor.items].map(i=>id(i)===itemId?{...source(i),system:{...source(i).system,quantity:total-amount}}:i);
+   const patch=movePatch([...projected,copy],copy._id,containerId);
+   copy.system.inventory={...copy.system.inventory,containerId,parentKey:patch['system.inventory.parentKey']};if(containerId)copy.system.equipped=false;
+   try{
+    const created=await actor.createEmbeddedDocuments('Item',[copy],{keepId:true});if(created.length!==1)throw new Error('Incomplete container creation');
+    await actor.updateEmbeddedDocuments('Item',[{_id:itemId,'system.quantity':total-amount}]);
+   }catch(error){if(actor.items.get(copy._id))await actor.deleteEmbeddedDocuments('Item',[copy._id]);throw error;}
+   await announceMove(actor,item,from,containerId,amount);return patch;
+  }
+  const patch=movePatch([...actor.items],itemId,containerId);
+  await actor.updateEmbeddedDocuments('Item',[patch]);await announceMove(actor,item,from,containerId,amount);return patch;
  });
 }
 export const detachToRoot=(actor,itemId)=>moveWithinActor(actor,itemId,'');

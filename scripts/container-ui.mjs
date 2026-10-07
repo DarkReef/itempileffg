@@ -7,7 +7,7 @@ const id=item=>item.id??item._id;
 export function dragData(event){try{return JSON.parse(event.dataTransfer.getData('text/plain'));}catch{return null;}}
 export async function droppedItem(data){if(data?.type!=='Item')return null;return data.uuid?fromUuid(data.uuid):null;}
 export async function receiveActorDrop(actor,item,containerId=''){
- if(item.parent?.uuid===actor.uuid)return moveWithinActor(actor,item.id,containerId);
+ if(item.parent?.uuid===actor.uuid)return requestMove(actor,item,containerId);
  if(item.parent?.documentName==='Actor'){
   return transferTree(item,actor,containerId);
  }
@@ -28,8 +28,8 @@ export function bindSheetDrop(root,app,actor){
 export function clearHighlights(root=document){for(const el of root.querySelectorAll('.ipf-drop-valid,.ipf-drop-invalid'))el.classList.remove('ipf-drop-valid','ipf-drop-invalid');}
 let activeDrag=null;
 export function registerDragTracking(){
- document.addEventListener('dragstart',event=>{activeDrag=null;const data=dragData(event);if(data?.type==='Item')void droppedItem(data).then(item=>{activeDrag=item;}).catch(()=>{});});
- for(const name of ['dragend','drop'])document.addEventListener(name,()=>{activeDrag=null;clearHighlights();});
+ document.addEventListener('dragstart',event=>{activeDrag=null;const data=dragData(event);if(data?.type==='Item')document.body.classList.add('ipf-dragging');if(data?.type==='Item')void droppedItem(data).then(item=>{activeDrag=item;}).catch(()=>{});});
+ for(const name of ['dragend','drop'])document.addEventListener(name,()=>{activeDrag=null;document.body.classList.remove('ipf-dragging');clearHighlights();});
 }
 /** Capture the native drop only on our explicit inventory targets. */
 export function bindActorDropZone(zone,actor,containerId='',app=null){
@@ -50,10 +50,19 @@ export function bindActorDropZone(zone,actor,containerId='',app=null){
   void droppedItem(data).then(item=>{if(!item)return;if(!PHYSICAL_TYPES.has(item.type))return app?._onDropItem(event,data);return receiveActorDrop(actor,item,containerId);}).catch(report);
  },true);
 }
+export async function requestMove(actor,item,containerId=''){
+ if((item.system.inventory?.containerId??'')===containerId)return null;
+ const total=Number(item.system.quantity??1);
+ if(total<=1||item.system.inventory?.isContainer)return moveWithinActor(actor,item.id,containerId);
+ const esc=foundry.utils.escapeHTML;
+ return foundry.applications.api.DialogV2.wait({window:{title:t('MOVE_QUANTITY')},content:`<label>${esc(item.name)}<input name="quantity" type="number" min="1" max="${total}" step="1" value="${total}" required></label>`,buttons:[
+ {action:'move',label:t('SAVE'),default:true,callback:(_e,b)=>moveWithinActor(actor,item.id,containerId,Number(b.form.elements.quantity.value))},
+ {action:'all',label:t('ALL'),callback:()=>moveWithinActor(actor,item.id,containerId,total)}],rejectClose:false});
+}
 export async function movementDialog(actor,item){
  const options=[{id:'',name:t('ROOT')},...[...actor.items].filter(i=>i.system.inventory?.isContainer&&i.id!==item.id).map(i=>({id:i.id,name:i.name}))];
  const esc=foundry.utils.escapeHTML;
- return foundry.applications.api.DialogV2.prompt({window:{title:t('MOVE_TO')},content:`<label>${esc(item.name)}<select name="container">${options.map(o=>`<option value="${esc(o.id)}">${esc(o.name)}</option>`).join('')}</select></label>`,ok:{label:t('SAVE'),callback:(_e,b)=>moveWithinActor(actor,item.id,b.form.elements.container.value)}});
+ return foundry.applications.api.DialogV2.prompt({window:{title:t('MOVE_TO')},content:`<label>${esc(item.name)}<select name="container">${options.map(o=>`<option value="${esc(o.id)}">${esc(o.name)}</option>`).join('')}</select></label>`,ok:{label:t('SAVE'),callback:(_e,b)=>requestMove(actor,item,b.form.elements.container.value)}});
 }
 export function enhanceContainerSheet(app,root,item){
  if(!PHYSICAL_TYPES.has(item.type)||root.querySelector('.ipf-container-editor'))return;
@@ -96,7 +105,7 @@ export function enhanceContainerSheet(app,root,item){
    qty.setAttribute('aria-label',t('QUANTITY')+': '+child.name);
    qty.addEventListener('change',e=>{e.stopPropagation();const value=Number(qty.value);if(!Number.isSafeInteger(value)||value<0){report(new Error('INVALID_QUANTITY'));return;}void updateTemplate(item,items=>{items.find(i=>id(i)===id(child)).system.quantity=value;}).catch(report);});row.append(qty);
    const remove=document.createElement('button');remove.type='button';remove.textContent=ownedActor?t('EXTRACT'):t('REMOVE_CONTENT');remove.disabled=!owned;
-   remove.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();void(ownedActor?moveWithinActor(ownedActor,id(child),''):updateTemplate(item,items=>{const removed=new Set([id(child),...descendants(items,id(child)).map(id)]);for(let i=items.length-1;i>0;i--)if(removed.has(id(items[i])))items.splice(i,1);})).catch(report);});row.append(remove);contents.append(row);
+   remove.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();void(ownedActor?requestMove(ownedActor,ownedActor.items.get(id(child)),''):updateTemplate(item,items=>{const removed=new Set([id(child),...descendants(items,id(child)).map(id)]);for(let i=items.length-1;i>0;i--)if(removed.has(id(items[i])))items.splice(i,1);})).catch(report);});row.append(remove);contents.append(row);
    if(child.system.inventory?.isContainer){if(ownedActor)bindActorDropZone(row,ownedActor,id(child));else bindTemplateDrop(row,id(child));}
   }
  }
