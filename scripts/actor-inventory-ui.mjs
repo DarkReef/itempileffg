@@ -28,7 +28,7 @@ export function enhanceActorContainers(app,html){
   const name=row.querySelector('.name');
   if(name){const count=document.createElement('span');count.className='ipf-quantity';count.textContent=` ×${Number(item.system.quantity??1)}`;name.append(count);}
   if(!item.system.inventory?.isContainer)continue;
-  const toggle=document.createElement('button');toggle.type='button';toggle.className='ipf-chevron';toggle.setAttribute('aria-label',t('CONTENTS')+': '+item.name);row.prepend(toggle);
+  const toggle=document.createElement('button');toggle.type='button';toggle.className='ipf-chevron';toggle.setAttribute('aria-label',t('CONTENTS')+': '+item.name);(name??row.querySelector('.marker')).prepend(toggle);
   const body=document.createElement('div');body.className='ipf-container-items';node.append(body);bodies.set(item.id,body);
   const refresh=()=>{const open=expanded.has(item.id);body.hidden=!open;toggle.textContent=open?'▾':'▸';toggle.setAttribute('aria-expanded',String(open));};refresh();
   toggle.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();if(expanded.has(item.id))expanded.delete(item.id);else expanded.add(item.id);refresh();});
@@ -36,7 +36,7 @@ export function enhanceActorContainers(app,html){
   bindActorDropZone(node,actor,item.id,app);
  }
  const rows=inventoryRows(items,new Set(items.map(item=>item.id))),depths=new Map(rows.map(r=>[r.item.id,r.depth]));
- for(const {item,depth} of rows){const parent=item.system.inventory?.containerId;if(depth>0&&depths.get(parent)<depth&&nodes.has(item.id)&&bodies.has(parent))bodies.get(parent).append(nodes.get(item.id));}
+ for(const {item,depth} of rows){nodes.get(item.id)?.style.setProperty('--ipf-depth',String(Math.min(depth,6)));const parent=item.system.inventory?.containerId;if(depth>0&&depths.get(parent)<depth&&nodes.has(item.id)&&bodies.has(parent))bodies.get(parent).append(nodes.get(item.id));}
  for(const heading of list.querySelectorAll(':scope > .gear-group-title')){
   let sibling=heading.nextElementSibling,hasItems=false;while(sibling&&!sibling.classList.contains('gear-group-title')){if(sibling.classList.contains('gear-block'))hasItems=true;sibling=sibling.nextElementSibling;}heading.hidden=!hasItems;
  }
