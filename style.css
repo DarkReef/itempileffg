@@ -63,3 +63,26 @@ body.itempileffg-active .item-piles-app .item-piles-flexrow > span {color:#171d2
 .ipf-container-editor{padding:10px;border-top:1px solid #897347}.ipf-container-editor>label{display:flex;align-items:center;gap:8px;margin:5px 0}
 .ipf-container-editor>label input[type=number]{max-width:90px}.ipf-quantity{opacity:.75;font-size:.9em}
 .gear-unified .gear .button:has(.ipf-row-action){flex-basis:auto;flex-wrap:wrap}
+/* Keep the native six-column subgrid continuous through every container level.
+   A plain div here becomes a single-cell grid item and crushes all descendants. */
+.dark-heresy .gear .all-gear .item-list.gear-unified:has(> .items[data-ipf-tree]) {
+ --dh-gear-cols:28px minmax(0,2fr) minmax(0,1fr) 110px 76px 144px;
+}
+.dark-heresy .gear .gear-unified .items[data-ipf-tree] .ipf-container-items,
+.dark-heresy .gear .gear-unified .items[data-ipf-tree] .ipf-container-items > .gear-block {
+ display:grid;grid-template-columns:subgrid;grid-column:1 / -1;
+ min-width:0;margin-inline:0;padding-inline:0;column-gap:var(--dh-space-3);
+}
+.dark-heresy .gear .gear-unified .items[data-ipf-tree] > .ipf-root-drop {grid-column:1 / -1;}
+.dark-heresy .gear .gear-unified .items[data-ipf-tree] .gear.item > .button {
+ display:flex;flex-wrap:wrap;justify-content:flex-end;gap:3px;width:auto;min-width:0;
+}
+.dark-heresy .gear .gear-unified .items[data-ipf-tree] .name > .ipf-chevron {
+ display:inline-block;vertical-align:middle;margin:0 5px 0 0;
+}
+.dark-heresy .gear .all-gear .item-list.gear-unified .items[data-ipf-tree] .gear.item > .name {
+ padding-left:calc(var(--ipf-depth,0) * 12px);
+}
+
+.ipf-root-drop{display:none}
+body.ipf-dragging .ipf-root-drop{display:block}

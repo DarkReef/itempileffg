@@ -58,3 +58,30 @@ test('Item Piles authority validates destination capacity and nests the complete
  a.items.get('targetBag').system.inventory.capacity=20;
  assert.equal(prepareTargetContainer(null,null,a,updates,interaction),true);assert.equal(rows[0].system.inventory.containerId,'targetBag');assert.equal(rows[2].system.inventory.containerId,rows[1]._id);
 }));
+
+test('partial movement conserves quantities and effects, validates selected mass and rolls back a failed source update',()=>runtime(async()=>{
+ const bag=data('bag',true);bag.system.inventory.capacity=2;
+ const a=actor([bag,data('grenade',false,'',5)]);
+ await moveWithinActor(a,'grenade','bag',2);
+ assert.equal(a.items.get('grenade').system.quantity,3);
+ const split=[...a.items].find(i=>i.id!=='bag'&&i.id!=='grenade');
+ assert.equal(split.system.quantity,2);assert.equal(split.system.inventory.containerId,'bag');assert.deepEqual(split.effects,a.items.get('grenade').effects);
+ await assert.rejects(moveWithinActor(a,'grenade','bag',1),/capacity/);
+ await assert.rejects(moveWithinActor(a,'grenade','bag',4),/INVALID_QUANTITY/);
+ const b=actor([data('bag',true),data('grenade',false,'',5)]);
+ b.updateEmbeddedDocuments=async()=>{throw new Error('save failed');};
+ await assert.rejects(moveWithinActor(b,'grenade','bag',2),/save failed/);
+ assert.equal(b.items.size,2);assert.equal(b.items.get('grenade').system.quantity,5);
+}));
+test('successful moves whisper once to all GMs, no-op and rejected moves remain silent',()=>runtime(async()=>{
+ const previous=globalThis.ChatMessage,calls=[];
+ foundry.utils.escapeHTML=s=>String(s).replaceAll('<','&lt;');
+ game.settings={get:()=> 'gm'};game.users=[{id:'gm1',isGM:true},{id:'gm2',isGM:true},{id:'player',isGM:false}];game.user.name='Player';
+ game.i18n={localize:()=> 'Root',format:(_key,values)=>JSON.stringify(values)};
+ globalThis.ChatMessage={getSpeaker:()=>({}),create:async data=>calls.push(data)};
+ try{const a=actor([data('bag',true),data('grenade',false,'',5)]);a.name='Actor';
+ await moveWithinActor(a,'grenade','bag',2);assert.equal(calls.length,1);assert.deepEqual(calls[0].whisper,['gm1','gm2']);
+ await moveWithinActor(a,'grenade','');assert.equal(calls.length,1);
+ await assert.rejects(moveWithinActor(a,'grenade','bag',99));assert.equal(calls.length,1);
+ }finally{globalThis.ChatMessage=previous;}
+}));
