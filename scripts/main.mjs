@@ -1,4 +1,5 @@
 import {saveContainerKit,grantKit} from './kits.mjs';
+import {isSupportedSystem} from './system-identity.mjs';
 import {inventoryRows} from './inventory-tree.mjs';
 import {moveWithinActor,instantiateTemplate,serializeTemplate,inventoryLock,prepareTargetContainer} from './container-service.mjs';
 import {enhanceContainerSheet,registerDragTracking,requestMove} from './container-ui.mjs';
@@ -165,7 +166,7 @@ Hooks.once('setup', () => {
 Hooks.on('item-piles-preTradeItems', guardContainerTrade);
 Hooks.on('item-piles-preTransferItems', (...args)=>{try{return prepareTargetContainer(...args);}catch(error){ui.notifications.error(errorText(error));return false;}});
 Hooks.once('ready', () => {
-    if (game.system.id !== 'dark-heresy') return;
+    if (!isSupportedSystem()) return;
     document.body.classList.add('itempileffg-active');
     const missing = ['item-piles','lib-wrapper','socketlib'].filter(id => !game.modules.get(id)?.active);
     if (missing.length) ui.notifications.error(`${t('INSTALL_ITEM_PILES')}: ${missing.join(', ')}`, {permanent:true});
@@ -220,7 +221,7 @@ Hooks.once('ready', () => void repairEconomy().catch(error => ui.notifications.e
 /** Works on world items, owned items and unlocked compendium items. Never use
  * system.cost: that field is the XP cost of talents and powers in FFG. */
 export function enhanceItemSheet(app, html) {
-    if (game.system.id !== 'dark-heresy') return;
+    if (!isSupportedSystem()) return;
     const item = app.item ?? app.document ?? app.object;
     if (item?.documentName !== 'Item') return;
     const root = html?.querySelector ? html : html?.[0] ?? app.element?.[0] ?? app.element;
