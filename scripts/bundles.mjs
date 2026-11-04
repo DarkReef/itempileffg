@@ -1,4 +1,5 @@
 import {PHYSICAL_TYPES,descendants,contentsMass,itemMass} from './inventory.mjs';
+import {AMMO_SOURCE_FLAG, ammunitionReferenceMap, remapAmmunitionLinks} from './ammo-links.mjs';
 export const KIT_SCOPE='itempileffg';
 const id = item => item.id ?? item._id;
 const copy = item => structuredClone(item.toObject ? item.toObject() : item);
@@ -9,8 +10,10 @@ export function snapshotBundle(items,rootId) {
     if(!root?.system?.inventory?.isContainer)throw new Error('Single container required');
     const chosen=[root,...descendants(items,rootId)];
     const result=chosen.map(copy);
+    const references=ammunitionReferenceMap(chosen,new Map(chosen.map(item=>[id(item),id(item)])));
+    for(const item of result)remapAmmunitionLinks(item,references);
     result[0].system.inventory.containerId='';result[0].system.inventory.parentKey='';
-    for(const item of result){delete item.id;delete item.folder;delete item.ownership;delete item._stats;if(item.flags?.[KIT_SCOPE]){delete item.flags[KIT_SCOPE].kit;delete item.flags[KIT_SCOPE].containerTemplate;}}
+    for(const item of result){delete item.id;delete item.folder;delete item.ownership;delete item._stats;if(item.flags?.[KIT_SCOPE]){delete item.flags[KIT_SCOPE].kit;delete item.flags[KIT_SCOPE].containerTemplate;delete item.flags[KIT_SCOPE][AMMO_SOURCE_FLAG];}}
     validateBundle(result);
     return result;
 }
@@ -35,18 +38,20 @@ export function validateBundle(items) {
     return true;
 }
 /** Allocate fresh IDs for every copy; repeated kit grants cannot cross-link bags. */
-export function instantiateBundle(items,randomID,existingIds=[]) {
+export function instantiateBundle(items,randomID,existingIds=[],{targetUuid=''}={}) {
     validateBundle(items);
     const used=new Set(existingIds),mapping=new Map();
     for(const item of items){let value;for(let n=0;n<100;n++){const candidate=randomID();if(!used.has(candidate)){value=candidate;used.add(value);break;}}if(!value)throw new Error('Cannot allocate item ID');mapping.set(id(item),value);}
+    const references=ammunitionReferenceMap(items,mapping);
     return items.map(item=>{
         const data=copy(item);data._id=mapping.get(id(item));delete data.id;delete data.folder;delete data.ownership;delete data._stats;
         data.system??={};if(item.system?.inventory?.containerId)data.system.equipped=false;
         const inv=data.system.inventory??={};inv.containerId=mapping.get(inv.containerId)||'';inv.parentKey=inv.containerId;
         inv.containerKey=inv.isContainer?data._id:'';
-        data.flags??={};if(data.flags[KIT_SCOPE]){delete data.flags[KIT_SCOPE].kit;delete data.flags[KIT_SCOPE].containerTemplate;}
+        data.flags??={};if(data.flags[KIT_SCOPE]){delete data.flags[KIT_SCOPE].kit;delete data.flags[KIT_SCOPE].containerTemplate;delete data.flags[KIT_SCOPE][AMMO_SOURCE_FLAG];}
         data.flags['item-piles']??={};data.flags['item-piles'].item??={};
         if(inv.isContainer||inv.containerId)data.flags['item-piles'].item.canStack='no';
+        remapAmmunitionLinks(data,references,targetUuid);
         return data;
     });
 }

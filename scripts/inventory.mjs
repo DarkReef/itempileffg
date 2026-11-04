@@ -1,3 +1,4 @@
+import {remapTransferredAmmunition} from './ammo-links.mjs';
 export const PHYSICAL_TYPES = new Set(['ammunition','armour','cybernetic','drug','forceField','gear','tool','weapon','weaponModification','vehicleWeapon']);
 const id = item => item.id ?? item._id;
 export function descendants(items, parentId) {
@@ -35,7 +36,7 @@ export function movePatch(items, itemId, containerId = '') {
         ...(containerId ? {'system.equipped':false} : {})};
 }
 /** Recover all nesting levels after Item Piles assigns destination Item IDs. */
-export function remapContainers({map}) {
+export function remapContainers({actor, map}) {
     const items = [...new Set(Object.values(map).flatMap(entry => [entry.item, ...(entry.items ?? [])]))];
     const containers = new Map(items.filter(i => i.system?.inventory?.isContainer).map(i => [i.system.inventory.containerKey, i]));
     for (const item of items) {
@@ -46,6 +47,7 @@ export function remapContainers({map}) {
         inventory.parentKey = parent ? id(parent) : '';
     }
     for (const item of items) if (item.system?.inventory?.isContainer) item.system.inventory.containerKey = id(item);
+    remapTransferredAmmunition({actor, map}, items);
 }
 export function validateMoney(value) {
     const number = Number(value);
