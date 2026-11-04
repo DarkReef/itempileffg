@@ -1,4 +1,5 @@
 import {inventoryRows} from './inventory-tree.mjs';
+import {isSupportedSystem} from './system-identity.mjs';
 import {PHYSICAL_TYPES} from './inventory.mjs';
 import {containerMetrics} from './container-service.mjs';
 import {bindActorDropZone,bindSheetDrop,movementDialog,requestMove,report} from './container-ui.mjs';
@@ -6,7 +7,7 @@ const expandedByActor=new Map();
 const t=key=>game.i18n.localize('ITEMPILEFFG.'+key);
 /** Decorate native rows, preserving edit/chat/delete and native drag payloads. */
 export function enhanceActorContainers(app,html){
- if(game.system.id!=='dark-heresy')return;
+ if(!isSupportedSystem())return;
  const actor=app.actor??app.document;if(!actor?.items)return;
  const root=html?.querySelector?html:html?.[0]??app.element;
  const list=root?.querySelector('.gear-unified > .items');if(!list||list.dataset.ipfTree)return;
