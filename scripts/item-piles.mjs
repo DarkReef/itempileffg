@@ -1,4 +1,5 @@
 import {currencyConfig} from './currency.mjs';
+import {rememberAmmunitionSource} from './ammo-links.mjs';
 import {PHYSICAL_TYPES,validateMoney} from './inventory.mjs';
 import {getDescendants as descendants,remapTree as remapContainers,contentsMass,snapshotBundle,instantiateBundle} from './container-service.mjs';
 
@@ -22,7 +23,9 @@ export function integrationConfig() {
         ITEM_QUANTITY_ATTRIBUTE:'system.quantity', ITEM_PRICE_ATTRIBUTE:'system.price',
         ITEM_FILTERS:[{path:'type', filters:'aptitude,criticalInjury,malignancy,mentalDisorder,mutation,psychicPower,specialAbility,talent,trait,race,origin,vehicleTrait,shipComponent,shipWeapon'},
             {path:'system.installed', filters:'installed'}],
-        ITEM_SIMILARITIES:['name','type','system.craftsmanship','system.price','system.special','system.traitOverrides','system.inventory.containerId','system.inventory.containerKey'],
+        ITEM_SIMILARITIES:['name','type','system.craftsmanship','system.price','system.special','system.traitOverrides',
+            'system.effect','system.quantityUnit','system.ammo','system.loadedAmmo','system.clip',
+            'system.inventory.containerId','system.inventory.containerKey'],
         CURRENCIES:[currencyConfig()],
         CURRENCY_DECIMAL_DIGITS:0.01, ITEM_TYPE_HANDLERS:handlers,
         ITEM_COST_TRANSFORMER:item => validateMoney(item.system?.price ?? 0),
@@ -45,7 +48,7 @@ export function integrationConfig() {
                 copy.flags['item-piles'].item ??= {};
                 copy.flags['item-piles'].item.canStack = 'no';
             }
-            return copy;
+            return rememberAmmunitionSource(copy);
         }
     };
 }
@@ -82,13 +85,14 @@ export function prepareContainerTrade(seller, sellerUpdates, buyer, buyerUpdates
     const uniqueID = () => { for (let i=0;i<100;i++) {const candidate=randomID();if (!used.has(candidate)) {used.add(candidate);return candidate;}} throw new Error('Cannot allocate item ID'); };
     const expanded = plans.map(({root,source,children,remove}) => {
         let first=true;
-        const copies=instantiateBundle(snapshotBundle([...seller.items],source.id),()=>{
+        const bundle=instantiateBundle(snapshotBundle([...seller.items],source.id),()=>{
             if(first){first=false;return root._id;}return uniqueID();
-        }).slice(1);
-        return {root,source,children,remove,copies};
+        },[],{targetUuid:buyer.uuid});
+        return {root,source,children,remove,copies:bundle.slice(1),remappedRoot:bundle[0]};
     });
-    for (const {root,children,remove,copies} of expanded) {
+    for (const {root,children,remove,copies,remappedRoot} of expanded) {
         root.system.inventory.containerId = ''; root.system.inventory.parentKey = ''; root.system.inventory.containerKey = root._id;
+        for(const key of ['ammo','loadedAmmo'])if(Object.hasOwn(remappedRoot.system,key))root.system[key]=remappedRoot.system[key];
         buyerUpdates.itemsToCreate.push(...copies);
         if (remove) for (const child of children) {
             if (!sellerUpdates.itemsToDelete.includes(child.id)) sellerUpdates.itemsToDelete.push(child.id);

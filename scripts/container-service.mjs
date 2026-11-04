@@ -63,7 +63,7 @@ export function templateTree(item){
 }
 export function serializeTemplate(items,rootId){return {version:1,items:snapshotBundle(items,rootId)};}
 export function projectedTree(actor,tree,containerId='',randomID=()=>foundry.utils.randomID()){
- const data=instantiateBundle(tree,randomID,[...actor.items].map(id));
+ const data=instantiateBundle(tree,randomID,[...actor.items].map(id),{targetUuid:actor.uuid});
  const patch=movePatch([...actor.items,...data],data[0]._id,containerId);
  data[0].system.inventory.containerId=patch['system.inventory.containerId'];
  data[0].system.inventory.parentKey=patch['system.inventory.parentKey'];
