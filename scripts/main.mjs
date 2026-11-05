@@ -5,11 +5,12 @@ import {moveWithinActor,instantiateTemplate,serializeTemplate,inventoryLock,prep
 import {enhanceContainerSheet,registerDragTracking,requestMove} from './container-ui.mjs';
 import {enhanceActorContainers} from './actor-inventory-ui.mjs';
 import {currencyConfig,syncCurrency,createCurrencyLoot} from './currency.mjs';
-import {extendSchemas} from './schema.mjs';
+import {registerSchemaHooks} from './schema.mjs';
 import {PHYSICAL_TYPES, descendants, contentsMass, itemMass, movePatch, validateMoney} from './inventory.mjs';
 import {registerItemPiles, guardContainerTrade} from './item-piles.mjs';
 
 const SCOPE = 'itempileffg';
+registerSchemaHooks({supported:isSupportedSystem});
 const esc = value => foundry.utils.escapeHTML(String(value ?? ''));
 const t = key => game.i18n.localize(`ITEMPILEFFG.${key}`);
 const errorText = error => {
@@ -156,7 +157,7 @@ Hooks.once('init', () => {
     game.settings.register(SCOPE, 'economyAdapterVersion', {scope:'world',config:false,type:Number,default:0});
 });
 Hooks.once('setup', () => {
-    extendSchemas(); registerItemPiles();
+    registerItemPiles();
     if (game.modules.get('lib-wrapper')?.active && typeof CONFIG.Actor.documentClass?.prototype?._computeEncumbrance === 'function') {
         libWrapper.register(SCOPE, 'CONFIG.Actor.documentClass.prototype._computeEncumbrance', function(wrapped, _oldWeight, ...args) {
             return wrapped([...this.items].reduce((sum,item) => sum + itemMass(item),0), ...args);

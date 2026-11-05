@@ -111,9 +111,16 @@ export async function addTemplateContents(item,incoming,targetId){
 export async function transferTree(item,target,containerId=''){
  requireOwner(item.parent);requireOwner(target);
  if(!game.itempiles?.API?.transferItems)throw new Error('INSTALL_ITEM_PILES');
- if(!containerId)return game.itempiles.API.transferItems(item.parent,target,[item.id]);
- projectedTree(target,item.system.inventory?.isContainer?snapshotBundle([...item.parent.items],item.id):templateTree(item),containerId);
- const result=await game.itempiles.API.transferItems(item.parent,target,[{_id:item.id,flags:{'item-piles':{item:{canStack:'no'}}}}],{interactionId:'ipf-container:'+JSON.stringify({target:target.uuid,containerId})});
+ // Item Piles 3.3.4 reads flags from the original descriptor with Foundry14's
+ // getProperty; string IDs throw there despite being advertised by its JSDoc.
+ // Omitting quantity preserves the API's whole-stack semantics.
+ const descriptor={_id:item.id};let options;
+ if(containerId){
+  projectedTree(target,item.system.inventory?.isContainer?snapshotBundle([...item.parent.items],item.id):templateTree(item),containerId);
+  descriptor.flags={'item-piles':{item:{canStack:'no'}}};
+  options={interactionId:'ipf-container:'+JSON.stringify({target:target.uuid,containerId})};
+ }
+ const result=await game.itempiles.API.transferItems(item.parent,target,[descriptor],options);
  if(result===false)throw new Error('Container transfer rejected');return result;
 }
 /** Runs on the Item Piles transaction authority before either Actor is written. */

@@ -1,5 +1,27 @@
 import {PHYSICAL_TYPES} from './inventory.mjs';
 
+const lifecycleRegistrations=new WeakMap();
+
+/** Foundry14 constructs world Documents before its setup hook. Extend models
+ * at init, and immediately after an asynchronous Apex model publication. The
+ * setup callback is only an idempotent fallback, never the primary registration.
+ * Runtime globals are resolved lazily because module scripts load before init.
+ */
+export function registerSchemaHooks({hooks=globalThis.Hooks,getConfig=()=>globalThis.CONFIG,
+    getRuntime=()=>globalThis.foundry,supported=()=>true}={}) {
+    if(lifecycleRegistrations.has(hooks))return lifecycleRegistrations.get(hooks);
+    const apply=()=>{
+        if(!supported())return false;
+        const config=getConfig(),runtime=getRuntime();
+        if(!config?.Actor?.dataModels||!config?.Item?.dataModels||!runtime?.data?.fields)return false;
+        extendSchemas(config,runtime);return true;
+    };
+    hooks.on('darkHeresy.dataModelsReady',apply);
+    hooks.once('init',apply);
+    hooks.once('setup',apply);
+    lifecycleRegistrations.set(hooks,apply);return apply;
+}
+
 /** Register schema subclasses before world Documents are constructed. Existing
  * fields from the 1.5 fork or other modules retain their original definitions. */
 export function extendSchemas(config = CONFIG, runtime = foundry) {
