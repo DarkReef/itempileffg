@@ -40,6 +40,6 @@ test('owned bag transfer delegates the full subtree to Item Piles',async()=>{
  const source={documentName:'Actor',uuid:'Actor.source',isOwner:true},target={uuid:'Actor.target',isOwner:true};
  globalThis.game={system:{id:'dark-heresy'},i18n:{localize:k=>k},itempiles:{API:{transferItems:async(...args)=>{call=args;}}}};
  globalThis.fromUuidSync=()=>({...item('bag','',true),parent:source});globalThis.ui={notifications:{error:()=>{}}};
- try{await receiveActorDrop(target,fromUuidSync());assert.deepEqual(call,[source,target,['bag']]);
+ try{await receiveActorDrop(target,fromUuidSync());assert.deepEqual(call,[source,target,[{_id:'bag'}],undefined]);
  }finally{Object.assign(globalThis,before);}
 });
